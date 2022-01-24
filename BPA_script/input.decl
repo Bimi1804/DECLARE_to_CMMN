@@ -1,0 +1,18 @@
+activity Create Fine
+activity Send Fine
+activity Insert Fine Notification
+activity Add penalty
+activity Payment
+activity Send for Credit Collection
+Init[Create Fine] | |
+Precedence[Add penalty, Send for Credit Collection] | | |
+Precedence[Create Fine, Add penalty] | | |
+Precedence[Create Fine, Insert Fine Notification] | | |
+Precedence[Create Fine, Payment] | | |
+Precedence[Create Fine, Send Fine] | | |
+Precedence[Create Fine, Send for Credit Collection] | | |
+Precedence[Insert Fine Notification, Add penalty] | | |
+Precedence[Insert Fine Notification, Send for Credit Collection] | | |
+Precedence[Send Fine, Add penalty] | | |
+Precedence[Send Fine, Insert Fine Notification] | | |
+Precedence[Send Fine, Send for Credit Collection] | | |
