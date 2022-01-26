@@ -41,7 +41,9 @@ while input_text.find("Precedence[") != -1:
     dest = mid[:marker]
     insert = [src, dest]
     precedence.append(insert)
-    input_text = input_text[end_marker+1:]
+    new_input = input_text[:start_marker-len("Precedence[")]
+    new_input += input_text[end_marker+1:]
+    input_text = new_input
 
 
 #Remove all constraints that have the Init Task as Source
@@ -55,7 +57,7 @@ def removeInits(list):
 precedence = removeInits(precedence)
 
 
-#Get all precedence constraints and store them in precedence-List
+#Get all coexistence constraints and store them in precedence-List
 while input_text.find("Co-Existence[") != -1:
     start_marker = input_text.find("Co-Existence[") + len("Co-Existence[")
     end_marker = input_text.find("\n",start_marker)
@@ -67,7 +69,10 @@ while input_text.find("Co-Existence[") != -1:
     dest = mid[:marker]
     insert = [src, dest]
     coexistence.append(insert)
-    input_text = input_text[end_marker+1:]
+    new_input = input_text[:start_marker-len("Co-Existence[")]
+    new_input += input_text[end_marker+1:]
+    input_text = new_input
+
 
 coexistence = removeInits(coexistence)
 
@@ -119,11 +124,9 @@ for id in activity_translator:
 CMMN_rows = math.ceil(len(activities) / 4)
 
 
-
 #---------------------------XML generation--------------------------------------#
 
-
-#Add start xml components
+#Add static xml components
 output = xml_components.CMMN_outer_start + xml_components.CMMN_case_start
 
 #Add Init Task (Planitem)
@@ -178,7 +181,16 @@ for x in activities:
         cmmn_planitem_task += "</cmmn:planItem>"
         output += cmmn_planitem_task
 
-#add sentries as elements
+#Add coexistence Milestones (PlanItem)
+for element in coexistence:
+    output += """<cmmn:planItem id="PlanItem_Mile_""" + element[0] + element[1] + '''" definitionRef="Milestone_'''
+    output += element[0] + element[1] + '''">'''
+    output += """<cmmn:entryCriterion id="EntryCriterion_Mile_""" + element[0] + element[1]
+    output += '''" sentryRef="Sentry_Mile_''' + element[0] + element[1] + '''"/>'''
+    output += "</cmmn:planItem>"
+
+
+#add sentries as elements (Precedence)
 for element in precedence:
     for id in activity_translator:
         if element[0] == id[1]:
@@ -193,6 +205,16 @@ for element in precedence:
     sentry += "</cmmn:planItemOnPart> </cmmn:sentry>"
     output += sentry
 
+#add Sentries (Co-Existence):
+for element in coexistence:
+    output += """<cmmn:sentry id="Sentry_Mile_""" + element[0] + element[1] + """"> """
+    output += """<cmmn:planItemOnPart id="PlanItemOnPart_Mile_""" + element[0] + element[0] + element[1] + '''" sourceRef="Planitem_''' + element[0]
+    output += '''"> <cmmn:standardEvent></cmmn:standardEvent></cmmn:planItemOnPart>'''
+    output += '''<cmmn:planItemOnPart id="PlanItemOnPart_Mile_''' + element[1] + element[0] + element[1] + '''" sourceRef="Planitem_''' + element[1]
+    output += '''"> <cmmn:standardEvent></cmmn:standardEvent></cmmn:planItemOnPart>'''
+    output += "</cmmn:sentry>"
+
+
 #add activities as Tasks (This defines the pure Task elements in .cmmn)
 for x in activities:
     if x != init:
@@ -201,6 +223,17 @@ for x in activities:
                 x_name = id[0]
                 cmmn_task = """ <cmmn:task id="Task_""" + x + '''"''' + ' name="' + x_name + '" />'
                 output += cmmn_task
+
+#Add coexistence Milestones (Name)
+for element in coexistence:
+    for id in activity_translator:
+        if element[0] == id[1]:
+            el_0_name = id[0]
+        if element[1] == id[1]:
+            el_1_name = id[0]
+    output += """<cmmn:milestone id="Milestone_""" + element[0] + element[1] + '''" name="Co-exist['''
+    output += el_0_name + ", " + el_1_name +  ''']" />'''
+
 
 if init is not None:
     output += "</cmmn:stage>"
@@ -212,21 +245,19 @@ output += xml_components.CMMN_case_end + xml_components.CMMN_cmmndi_start
 
 #Define position and size of the model:
 #position is always: x100, y100
-
 if len(activities) > 4:
     width = 900
 else:
-    width = 225*len(activities)
+    width = 200*len(activities)
 
 if init is not None:
     width += 150
-
 if len(coexistence) > 0:
     width += 150
 
 output += """<cmmndi:CMMNShape id="DI_CasePlanModel_1" cmmnElementRef="CasePlanModel_1"> <dc:Bounds x="150" y="100" width=" """
 output += str(width)
-height = (150 * CMMN_rows)
+height = (150 * CMMN_rows) + 50
 output += '''" height="''' + str(height) + '''" /> <cmmndi:CMMNLabel /> </cmmndi:CMMNShape>'''
 
 #add activity position and size
@@ -258,7 +289,10 @@ for act in activities:
 
 #Init Stage shapes
 if init is not None:
-    stage_width = 780
+    if len(activities) > 4:
+        stage_width = 780
+    else:
+        stage_width = 195*len(activities)
     if len(coexistence) > 0:
         stage_width += 170
     stage_height = (CMMN_rows *140)
@@ -267,7 +301,7 @@ if init is not None:
     stage += '''" height="''' + str(stage_height) + '''"/> <cmmndi:CMMNLabel /> </cmmndi:CMMNShape>'''
     output += stage
 
-#Sentry shapes
+#Sentry shapes (Precedence)
 for element in precedence:
     sentry = """<cmmndi:CMMNShape id="EntryCriterion_""" + element[0] + element[1]
     sentry += """_di" cmmnElementRef="EntryCriterion_""" + element[0] + element[1] + """">"""
@@ -287,7 +321,7 @@ for element in precedence:
     sentry += "<cmmndi:CMMNLabel /> </cmmndi:CMMNShape>"
     output += sentry
 
-#Edge shapes:
+#Edges shapes (Precedence):
 for element in precedence:
     edge = """<cmmndi:CMMNEdge id="PlanItemOnPart_""" + element[0] + element[1]
     edge += """_di" cmmnElementRef="PlanItemOnPart_""" + element[0] + element[1]
@@ -322,16 +356,80 @@ for element in precedence:
     edge += """ " width="51" height="12" /> </cmmndi:CMMNLabel> </cmmndi:CMMNEdge>"""
     output += edge
 
-#Add INIT sentry
+#Sentry Shape (Init)
 if init is not None:
     output += """<cmmndi:CMMNShape id="EntryCriterion_init_""" + init + '''_di" cmmnElementRef="EntryCriterion_init_''' + init + '''">'''
     output += '''<dc:Bounds x="340" y="161" width="20" height="28" /><cmmndi:CMMNLabel /></cmmndi:CMMNShape>'''
 
-#Add INIT Edge
+#Edge Shape (Init)
 if init is not None:
     output += """<cmmndi:CMMNEdge id="PlanItemOnPart_init_edge_""" + init + '''_di" cmmnElementRef="PlanItemOnPart_init_edge_''' + init
     output += '''" targetCMMNElementRef="EntryCriterion_init_''' + init + '''" isStandardEventVisible="true">'''
     output += """<di:waypoint x="300" y="175" /><di:waypoint x="340" y="175" /><cmmndi:CMMNLabel><dc:Bounds x="310" y="152" width="51" height="12" /></cmmndi:CMMNLabel></cmmndi:CMMNEdge>"""
+
+#Milestone (Co-Existence)
+for element in coexistence:
+    if len(activities) > 4:
+        x = 950
+    else:
+        x = (200 * (len(activities)+1))-50
+    if init is not None:
+        x += 200
+    y = 155
+    output += """<cmmndi:CMMNShape id="PlanItem_Mile_""" + element[0] +  element[1] + '''_di" cmmnElementRef="PlanItem_Mile_'''
+    output += element[0] +  element[1] + '''"> <dc:Bounds x="'''
+    output += str(x) + '''" y="'''+ str(y) + '''" width="100" height="40" />'''
+    output += "<cmmndi:CMMNLabel /> </cmmndi:CMMNShape>"
+
+#Sentry (Co-Existence)
+for element in coexistence:
+    output += """<cmmndi:CMMNShape id="EntryCriterion_Mile_""" + element[0] + element[1]
+    output += """_di" cmmnElementRef="EntryCriterion_Mile_""" + element[0] + element[1] + """">"""
+    for act in activities:
+        if act is element[1]:
+            if len(activities) > 4:
+                x = 940
+            else:
+                x = (200 * (len(activities)+1))-60
+            if init is not None:
+                x += 200
+            y = 160
+    output += """ <dc:Bounds x=" """ + str(x) + '''" y="''' + str(y) + """ " width="20" height="28" />"""
+    output += "<cmmndi:CMMNLabel /> </cmmndi:CMMNShape>"
+
+
+
+#Edges (Co-Existence)
+for element in coexistence:
+    for single in element:
+        output += """<cmmndi:CMMNEdge id="PlanItemOnPart__Mile_""" + single + element[0] + element[1] + '''_di" '''
+        output += """cmmnElementRef="PlanItemOnPart_Mile_""" + single + element[0] + element[1]
+        output += '''" targetCMMNElementRef="EntryCriterion_Mile_''' + element[0] + element[1]
+        output += '''" isStandardEventVisible="true">'''
+        for act in activities:
+            if act == single:
+                counter = activities.index(act)+1
+                row = math.ceil(counter/4)
+                if row > 1:
+                    column = counter - (4 * (row-1))
+                else:
+                    column = counter
+                x_act = (column * 200) +100
+                y_act = 175 + ((row -1)*135)
+                if init is not None:
+                    x_act += 200
+        if len(activities) > 4:
+            x_mile = 940
+        else:
+            x_mile = (200 * (len(activities)+1))-60
+        if init is not None:
+            x_mile += 200
+        y_mile = 175
+        output += """<di:waypoint x=" """ + str(x_act) + """ " y=" """ + str(y_act) + """ " />"""
+        output += """<di:waypoint x=" """ + str(x_mile) + """ " y=" """ + str(y_mile) + """ " />"""
+        output += """<cmmndi:CMMNLabel> <dc:Bounds x=" """ + str(x_mile) + """ " y=" """ + str(y_mile)
+        output += """ " width="51" height="12" /> </cmmndi:CMMNLabel> </cmmndi:CMMNEdge>"""
+
 
 #Add end-xml-components
 output += xml_components.CMMN_end
