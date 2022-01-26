@@ -16,3 +16,5 @@ Precedence[Insert Fine Notification, Send for Credit Collection] | | |
 Precedence[Send Fine, Add penalty] | | |
 Precedence[Send Fine, Insert Fine Notification] | | |
 Precedence[Send Fine, Send for Credit Collection] | | |
+Co-Existence[Add penalty, Send for Credit Collection] | | |
+Co-Existence[Create Fine, Send for Credit Collection] | | |
