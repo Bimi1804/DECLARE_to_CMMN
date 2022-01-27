@@ -1,12 +1,13 @@
 # DECLARE to CMMN Converter
 Code for Business Process Analytics course
+Creator: Markus Bimassl
 
 This code is for the course "0822 - Business Process Analytics" at Wu Vienna in the winter semester 2021/2022.
 
 The code takes a DECLARE model as .decl and outputs a CMMN model as .cmmn
 The script was tested with RuM (as the source of .decl) and Camunda v3.6 (as the editor for the .cmmn)
 
-Creator: Markus Bimassl
+
 
 
 Files:
